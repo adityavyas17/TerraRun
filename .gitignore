@@ -1,0 +1,33 @@
+# Flutter / Dart
+.dart_tool/
+.packages
+.pub/
+build/
+
+# iOS
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/ephemeral/
+ios/Flutter/Generated.xcconfig
+
+# macOS
+macos/Pods/
+macos/Flutter/ephemeral/
+
+# Android
+android/.gradle/
+android/app/build/
+
+# IDE
+.idea/
+.vscode/
+*.iml
+
+# Python backend
+venv/
+__pycache__/
+*.pyc
+.env
+
+# Misc
+.DS_Store
