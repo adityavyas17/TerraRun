@@ -38,3 +38,75 @@ fitness_game_app/
 ├── macos/
 ├── web/
 └── pubspec.yaml
+
+
+HOW TO RUN
+# 1. Clone project
+git clone https://github.com/YOUR_USERNAME/TerraRun.git
+cd TerraRun
+
+# 2. BACKEND SETUP
+cd backend
+
+# Create virtual environment
+python3 -m venv ../venv
+
+# Activate (macOS/Linux)
+source ../venv/bin/activate
+
+# Install backend dependencies
+pip install fastapi uvicorn
+
+# Start backend server
+python3 -m uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+
+# 3. FIND YOUR LOCAL IP (for mobile testing)
+# Run this command:
+ifconfig
+
+# Look for something like:
+# inet 192.168.x.x  ← this is your IP
+
+
+# 4. CONFIGURE FRONTEND URL
+# Open this file in your code editor:
+# lib/config.dart
+
+# Replace its content with:
+
+# ----------------------------------------
+# import 'package:flutter/foundation.dart';
+#
+# class Config {
+#   static String get baseUrl {
+#     if (kIsWeb) {
+#       return 'http://localhost:8000';
+#     }
+#     return 'http://YOUR_IP:8000';
+#   }
+# }
+# ----------------------------------------
+
+# Replace YOUR_IP with your actual IP
+# Example:
+# http://192.168.1.5:8000
+
+
+# 5. FRONTEND SETUP (open new terminal)
+
+cd TerraRun
+flutter pub get
+
+
+# 6. RUN APP
+
+# Run on Chrome (web)
+flutter run -d chrome
+
+# OR run on iPhone / Android (same Wi-Fi required)
+flutter run
+
+- For mobile: DO NOT use localhost → use your IP
+- Phone and laptop must be on same Wi-Fi
+- GPS works best on real phone (not Chrome)
