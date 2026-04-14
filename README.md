@@ -1,17 +1,40 @@
-# fitness_game_app
+# TerraRun
 
-A new Flutter project.
+## Features
 
-## Getting Started
+- User signup and login
+- Real-time run tracking using device GPS
+- Run timer, distance, and average speed
+- Save completed runs to backend
+- Run history page
+- Leaderboard page
+- Home and profile stats
+- Map-based tracking using Flutter Map
 
-This project is a starting point for a Flutter application.
+## Tech Stack
 
-A few resources to get you started if this is your first Flutter project:
+### Frontend
+- Flutter
+- Dart
+- Flutter Map
+- Geolocator
 
-- [Learn Flutter](https://docs.flutter.dev/get-started/learn-flutter)
-- [Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Flutter learning resources](https://docs.flutter.dev/reference/learning-resources)
+### Backend
+- FastAPI
+- Python
+- Uvicorn
+- PostgreSQL
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+## Project Structure
+
+```text
+fitness_game_app/
+│
+├── lib/                  # Flutter frontend
+├── backend/              # FastAPI backend
+├── assets/               # Images/assets
+├── android/
+├── ios/
+├── macos/
+├── web/
+└── pubspec.yaml
