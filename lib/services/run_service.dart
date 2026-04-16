@@ -8,6 +8,7 @@ class RunService {
     required double distanceKm,
     required int durationSeconds,
     required double avgSpeed,
+    List<List<double>>? routeCoordinates,
   }) async {
     try {
       final token = await AuthService.getToken();
@@ -21,6 +22,17 @@ class RunService {
 
       final uri = Uri.parse('${Config.baseUrl}/runs');
 
+      final body = <String, dynamic>{
+        'distance_km': distanceKm,
+        'duration_seconds': durationSeconds,
+        'avg_speed': avgSpeed,
+      };
+
+      // --- NEW: send GPS coordinates if available ---
+      if (routeCoordinates != null && routeCoordinates.length >= 2) {
+        body['route_coordinates'] = routeCoordinates;
+      }
+
       final response = await http.post(
         uri,
         headers: {
@@ -28,11 +40,7 @@ class RunService {
           'Accept': 'application/json',
           'Authorization': 'Bearer $token',
         },
-        body: jsonEncode({
-          'distance_km': distanceKm,
-          'duration_seconds': durationSeconds,
-          'avg_speed': avgSpeed,
-        }),
+        body: jsonEncode(body),
       );
 
       final data =

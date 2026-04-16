@@ -197,23 +197,39 @@ class _RunPageState extends State<RunPage> {
       statusText = 'Saving run...';
     });
 
+    // Convert tracked GPS points to [[lat, lng], …] for territory capture
+    final List<List<double>> routeCoords = runPath
+        .map((p) => [p.latitude, p.longitude])
+        .toList();
+
     final result = await RunService.saveRun(
       distanceKm: distanceKm,
       durationSeconds: secondsElapsed,
       avgSpeed: avgSpeed,
+      routeCoordinates: routeCoords.length >= 2 ? routeCoords : null,
     );
 
     if (!mounted) return;
 
+    final hasTerritoryData = result['success'] == true &&
+        result['data'] is Map &&
+        result['data']['territory_geojson'] != null;
+
     setState(() {
       isSavingRun = false;
       statusText = result['success'] == true
-          ? (closedLoop ? 'Loop captured and run saved' : 'Run saved')
+          ? (hasTerritoryData
+              ? 'Territory claimed! Run saved'
+              : closedLoop
+                  ? 'Loop captured and run saved'
+                  : 'Run saved')
           : 'Run stopped, but save failed';
     });
 
     final message = result['success'] == true
-        ? 'Run saved successfully'
+        ? (hasTerritoryData
+            ? 'Run saved — territory captured!'
+            : 'Run saved successfully')
         : (result['message']?.toString() ?? 'Failed to save run');
 
     ScaffoldMessenger.of(context).showSnackBar(

@@ -25,6 +25,8 @@ android/app/build/
 
 # Python backend
 venv/
+.venv/
+backend/.venv/
 __pycache__/
 *.pyc
 .env

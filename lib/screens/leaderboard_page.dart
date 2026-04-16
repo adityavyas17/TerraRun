@@ -270,10 +270,23 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
     return '${distance.toStringAsFixed(2)} km';
   }
 
+  String _territoryText(dynamic leader) {
+    final area = ((leader['territory_area'] ?? 0) as num).toDouble();
+    if (area <= 0) return '';
+    if (area >= 1000000) {
+      return '${(area / 1000000).toStringAsFixed(2)} km²';
+    } else if (area >= 1000) {
+      return '${(area / 1000).toStringAsFixed(1)}k m²';
+    }
+    return '${area.toStringAsFixed(0)} m²';
+  }
+
   String _subtitleText(dynamic leader) {
     final runs = leader['total_runs'] ?? 0;
     final avg = ((leader['avg_speed'] ?? 0) as num).toDouble();
-    return '$runs runs • avg ${avg.toStringAsFixed(1)}';
+    final territory = _territoryText(leader);
+    final base = '$runs runs • avg ${avg.toStringAsFixed(1)}';
+    return territory.isNotEmpty ? '$base • $territory' : base;
   }
 
   @override
@@ -423,8 +436,10 @@ class _LeaderboardPageState extends State<LeaderboardPage> {
                                         ),
                                         const SizedBox(width: 8),
                                         buildMiniStat(
-                                          label: 'Top Runs',
-                                          value: '${top1['total_runs'] ?? 0}',
+                                          label: 'Top Territory',
+                                          value: _territoryText(top1).isNotEmpty
+                                              ? _territoryText(top1)
+                                              : '${top1['total_runs'] ?? 0} runs',
                                         ),
                                       ],
                                     ),

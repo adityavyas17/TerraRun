@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func
 
 from app.database import get_db
-from app.models import Run, User
+from app.models import Run, User, Territory
 from app.schemas import ProfileStatsResponse
 from app.auth import decode_access_token
 
@@ -50,8 +50,17 @@ def get_profile_stats(
     total_distance_km = float(totals[1] or 0.0)
     avg_speed = float(totals[2] or 0.0)
 
+    # --- NEW: fetch territory area ---
+    territory = (
+        db.query(Territory)
+        .filter(Territory.user_id == current_user.id)
+        .first()
+    )
+    territory_area_sq_m = round(territory.area_sq_m, 2) if territory else 0.0
+
     return ProfileStatsResponse(
         total_distance_km=total_distance_km,
         total_runs=total_runs,
         avg_speed=avg_speed,
+        territory_area_sq_m=territory_area_sq_m,
     )

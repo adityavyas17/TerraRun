@@ -1,4 +1,5 @@
 from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, EmailStr, Field
 
 
@@ -24,6 +25,8 @@ class RunCreateRequest(BaseModel):
     distance_km: float = Field(ge=0)
     duration_seconds: int = Field(ge=0)
     avg_speed: float = Field(ge=0)
+    # --- NEW: optional GPS coordinates [[lat, lng], …] ---
+    route_coordinates: Optional[list[list[float]]] = None
 
 
 class RunResponse(BaseModel):
@@ -33,6 +36,9 @@ class RunResponse(BaseModel):
     duration_seconds: int
     avg_speed: float
     created_at: datetime
+    # --- NEW: optional route + territory GeoJSON ---
+    route_geojson: Optional[dict] = None
+    territory_geojson: Optional[dict] = None
 
     class Config:
         from_attributes = True
@@ -42,3 +48,25 @@ class ProfileStatsResponse(BaseModel):
     total_distance_km: float
     total_runs: int
     avg_speed: float
+    # --- NEW: optional territory area ---
+    territory_area_sq_m: float = 0.0
+
+
+class UserProfileResponse(BaseModel):
+    user_name: str
+    user_email: EmailStr
+
+
+# ---------------------------------------------------------------------------
+# NEW: Territory-specific response schemas
+# ---------------------------------------------------------------------------
+
+class TerritoryResponse(BaseModel):
+    user_id: int
+    user_name: str
+    area_sq_m: float
+    geojson: Optional[dict] = None
+
+
+class TerritoryListResponse(BaseModel):
+    territories: list[TerritoryResponse]

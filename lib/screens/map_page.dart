@@ -4,6 +4,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import '../data/run_data.dart';
 import '../services/stats_service.dart';
+import '../services/territory_service.dart';
 
 class MapPage extends StatefulWidget {
   const MapPage({super.key});
@@ -22,6 +23,10 @@ class _MapPageState extends State<MapPage> {
   double _totalDistance = 0.0;
   int _totalRuns = 0;
   double _avgSpeed = 0.0;
+
+  // --- Territory data ---
+  List<Map<String, dynamic>> _territories = [];
+  double _myTerritoryArea = 0.0;
 
   bool get hasLiveLocation =>
       RunDataStore.currentLatitude != null &&
@@ -42,6 +47,7 @@ class _MapPageState extends State<MapPage> {
   void initState() {
     super.initState();
     _loadRuns();
+    _loadTerritories();
 
     followTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
@@ -87,6 +93,85 @@ class _MapPageState extends State<MapPage> {
         _isLoadingStats = false;
       });
     }
+  }
+
+  Future<void> _loadTerritories() async {
+    final result = await TerritoryService.getAllTerritories();
+
+    if (!mounted) return;
+
+    if (result['success'] == true) {
+      final data = result['data'] as Map<String, dynamic>;
+      final list = data['territories'] as List<dynamic>? ?? [];
+
+      setState(() {
+        _territories = list.cast<Map<String, dynamic>>();
+      });
+    }
+
+    // Also fetch my territory area
+    final myResult = await TerritoryService.getMyTerritory();
+    if (!mounted) return;
+
+    if (myResult['success'] == true) {
+      final data = myResult['data'] as Map<String, dynamic>;
+      setState(() {
+        _myTerritoryArea = ((data['area_sq_m'] ?? 0) as num).toDouble();
+      });
+    }
+  }
+
+  /// Parse a GeoJSON geometry into a list of polygon point-lists.
+  List<List<LatLng>> _parseGeoJsonPolygons(Map<String, dynamic>? geojson) {
+    if (geojson == null) return [];
+
+    final type = geojson['type'] as String? ?? '';
+    final List<List<LatLng>> polygons = [];
+
+    if (type == 'Polygon') {
+      final coords = geojson['coordinates'] as List<dynamic>;
+      if (coords.isNotEmpty) {
+        final ring = coords[0] as List<dynamic>;
+        polygons.add(
+          ring
+              .map((c) => LatLng(
+                    (c[1] as num).toDouble(),
+                    (c[0] as num).toDouble(),
+                  ))
+              .toList(),
+        );
+      }
+    } else if (type == 'MultiPolygon') {
+      final polys = geojson['coordinates'] as List<dynamic>;
+      for (final poly in polys) {
+        final ring = (poly as List<dynamic>)[0] as List<dynamic>;
+        polygons.add(
+          ring
+              .map((c) => LatLng(
+                    (c[1] as num).toDouble(),
+                    (c[0] as num).toDouble(),
+                  ))
+              .toList(),
+        );
+      }
+    }
+
+    return polygons;
+  }
+
+  /// Generate a color for a given user_id (deterministic).
+  Color _colorForUser(int userId, bool isMe) {
+    if (isMe) return const Color(0xFF3B82F6);
+    const palette = [
+      Color(0xFFEF4444),
+      Color(0xFF22C55E),
+      Color(0xFFF59E0B),
+      Color(0xFF8B5CF6),
+      Color(0xFFEC4899),
+      Color(0xFF06B6D4),
+      Color(0xFFF97316),
+    ];
+    return palette[userId % palette.length];
   }
 
   @override
@@ -136,9 +221,55 @@ class _MapPageState extends State<MapPage> {
     );
   }
 
+  String _formatArea(double sqm) {
+    if (sqm >= 1000000) {
+      return '${(sqm / 1000000).toStringAsFixed(2)} km²';
+    } else if (sqm >= 1000) {
+      return '${(sqm / 1000).toStringAsFixed(1)}k m²';
+    }
+    return '${sqm.toStringAsFixed(0)} m²';
+  }
+
+  void _refreshAll() {
+    _loadRuns();
+    _loadTerritories();
+  }
+
   @override
   Widget build(BuildContext context) {
     const accent = Color(0xFF3B82F6);
+
+    // Build territory polygon layers
+    final List<Polygon> territoryPolygons = [];
+
+    // Get current user ID from territories to determine "isMe"
+    // We'll use a simple heuristic: if user_name matches stored userName
+    for (final t in _territories) {
+      final geojson = t['geojson'] as Map<String, dynamic>?;
+      final userId = (t['user_id'] as num?)?.toInt() ?? 0;
+      final userName = t['user_name']?.toString() ?? '';
+      final area = ((t['area_sq_m'] ?? 0) as num).toDouble();
+
+      // Determine if this is the current user's territory
+      // (we check if area matches our own territory area — simple approach)
+      final isMe = area > 0 && (area - _myTerritoryArea).abs() < 1.0;
+
+      final color = _colorForUser(userId, isMe);
+      final polyPoints = _parseGeoJsonPolygons(geojson);
+
+      for (final points in polyPoints) {
+        if (points.length >= 3) {
+          territoryPolygons.add(
+            Polygon(
+              points: points,
+              color: color.withOpacity(0.25),
+              borderColor: color.withOpacity(0.7),
+              borderStrokeWidth: 2,
+            ),
+          );
+        }
+      }
+    }
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -157,6 +288,9 @@ class _MapPageState extends State<MapPage> {
                 subdomains: const ['a', 'b', 'c', 'd'],
                 userAgentPackageName: 'com.example.fitness_game_app',
               ),
+              // --- Territory polygons ---
+              if (territoryPolygons.isNotEmpty)
+                PolygonLayer(polygons: territoryPolygons),
               if (latestPathPoints.length >= 2)
                 PolylineLayer(
                   polylines: [
@@ -204,7 +338,7 @@ class _MapPageState extends State<MapPage> {
                         ),
                       ),
                       const Spacer(),
-                      topButton(Icons.refresh_rounded, _loadRuns),
+                      topButton(Icons.refresh_rounded, _refreshAll),
                     ],
                   ),
                 ),
@@ -226,7 +360,9 @@ class _MapPageState extends State<MapPage> {
                               ? 'Live run tracking active'
                               : _totalRuns == 0
                                   ? 'No runs saved yet'
-                                  : 'You have completed $_totalRuns runs',
+                                  : _myTerritoryArea > 0
+                                      ? 'Your territory: ${_formatArea(_myTerritoryArea)}'
+                                      : 'You have completed $_totalRuns runs',
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -277,8 +413,10 @@ class _MapPageState extends State<MapPage> {
                                 '${_totalDistance.toStringAsFixed(2)} km',
                               ),
                               stat(
-                                'Avg Speed',
-                                _avgSpeed.toStringAsFixed(1),
+                                'Territory',
+                                _myTerritoryArea > 0
+                                    ? _formatArea(_myTerritoryArea)
+                                    : '—',
                               ),
                             ],
                           ),
@@ -296,8 +434,10 @@ class _MapPageState extends State<MapPage> {
                               Expanded(
                                 child: Text(
                                   _totalRuns == 0
-                                      ? 'Start your first run to build your map history'
-                                      : 'Total distance covered: ${_totalDistance.toStringAsFixed(2)} km',
+                                      ? 'Start your first run to claim territory'
+                                      : _myTerritoryArea > 0
+                                          ? 'Territory: ${_formatArea(_myTerritoryArea)} • ${_territories.length} players'
+                                          : 'Total distance covered: ${_totalDistance.toStringAsFixed(2)} km',
                                   style: const TextStyle(
                                     color: Colors.white,
                                     fontSize: 11,

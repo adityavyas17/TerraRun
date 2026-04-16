@@ -1,0 +1,41 @@
+version: "3.9"
+
+services:
+  # ── PostgreSQL + PostGIS ──────────────────────────────────────────
+  db:
+    image: postgis/postgis:16-3.4
+    container_name: terrarun_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: terrarun
+      POSTGRES_PASSWORD: terrarun_secret
+      POSTGRES_DB: terrarun
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U terrarun -d terrarun"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # ── FastAPI backend ───────────────────────────────────────────────
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: terrarun_backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://terrarun:terrarun_secret@db:5432/terrarun
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

@@ -3,6 +3,8 @@ uvicorn
 sqlalchemy
 psycopg2-binary
 python-jose
-passlib[bcrypt]
+bcrypt>=4.0.0
 python-multipart
 pydantic[email]
+geoalchemy2
+shapely

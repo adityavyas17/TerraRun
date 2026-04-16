@@ -5,14 +5,12 @@ from app.routes.auth_routes import router as auth_router
 from app.routes.run_routes import router as run_router
 from app.routes.stats_routes import router as stats_router
 from app.routes.leaderboard_routes import router as leaderboard_router
+from app.routes.territory_routes import router as territory_router
 
 
 Base.metadata.create_all(bind=engine)
 
 app = FastAPI(title="TerraRun API")
-app.include_router(auth_router)
-app.include_router(run_router)
-app.include_router(leaderboard_router)
 
 app.add_middleware(
     CORSMiddleware,
@@ -25,6 +23,8 @@ app.add_middleware(
 app.include_router(auth_router)
 app.include_router(run_router)
 app.include_router(stats_router)
+app.include_router(leaderboard_router)
+app.include_router(territory_router)
 
 
 @app.get("/")

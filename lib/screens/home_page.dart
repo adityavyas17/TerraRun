@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/stats_service.dart';
 import '../services/auth_service.dart';
+import '../services/territory_service.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -17,6 +18,7 @@ class _HomePageState extends State<HomePage> {
   int _totalRuns = 0;
   double _avgSpeed = 0.0;
   String _userName = 'Runner';
+  double _territoryArea = 0.0;
 
   @override
   void initState() {
@@ -33,16 +35,26 @@ class _HomePageState extends State<HomePage> {
     final userName = await AuthService.getUserName();
     final result = await StatsService.getProfileStats();
 
+    // Fetch territory area
+    final terrResult = await TerritoryService.getMyTerritory();
+
     if (!mounted) return;
 
     if (result['success'] == true) {
       final data = result['data'] as Map<String, dynamic>;
+
+      double terrArea = 0.0;
+      if (terrResult['success'] == true) {
+        final terrData = terrResult['data'] as Map<String, dynamic>;
+        terrArea = ((terrData['area_sq_m'] ?? 0) as num).toDouble();
+      }
 
       setState(() {
         _userName = (userName == null || userName.isEmpty) ? 'Runner' : userName;
         _totalDistanceKm = (data['total_distance_km'] ?? 0).toDouble();
         _totalRuns = (data['total_runs'] ?? 0) as int;
         _avgSpeed = (data['avg_speed'] ?? 0).toDouble();
+        _territoryArea = terrArea;
         _isLoading = false;
       });
     } else {
@@ -169,6 +181,15 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
+  String _formatArea(double sqm) {
+    if (sqm >= 1000000) {
+      return '${(sqm / 1000000).toStringAsFixed(2)} km²';
+    } else if (sqm >= 1000) {
+      return '${(sqm / 1000).toStringAsFixed(1)}k m²';
+    }
+    return '${sqm.toStringAsFixed(0)} m²';
+  }
+
   @override
   Widget build(BuildContext context) {
     const bgTop = Color(0xFF1A1A1A);
@@ -186,11 +207,15 @@ class _HomePageState extends State<HomePage> {
 
     final territoryText = _totalRuns == 0
         ? 'Start your first run today'
-        : '${_totalRuns} runs completed';
+        : _territoryArea > 0
+            ? '${_formatArea(_territoryArea)} claimed'
+            : '${_totalRuns} runs completed';
 
     final territorySubtext = _totalRuns == 0
         ? 'Complete your first run to start building your zone.'
-        : 'You covered ${_totalDistanceKm.toStringAsFixed(2)} km overall.';
+        : _territoryArea > 0
+            ? 'You covered ${_totalDistanceKm.toStringAsFixed(2)} km and claimed territory.'
+            : 'You covered ${_totalDistanceKm.toStringAsFixed(2)} km overall.';
 
     return Scaffold(
       backgroundColor: bgBody,
